@@ -1,6 +1,5 @@
-package ru.practicum.pageObject;
+package ru.practicum.pageobject;
 
-import org.junit.Assert;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
@@ -11,7 +10,9 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 import java.time.Duration;
 
     public class HomePage {
+        private static final String URL = "https://qa-scooter.praktikum-services.ru/";
         private final WebDriver driver;
+        private final WebDriverWait wait;
 
         // Локатор кнопки сообщения у кукисах
         private final By cookieButton = By.id("rcc-confirm-button");
@@ -19,94 +20,85 @@ import java.time.Duration;
         private final By upOrderButton = By.className("Button_Button__ra12g");
         // Локатор кнопки Заказа в середине
         private final By midOrderButton = By.className("Button_Middle__1CSJM");
-
         // Локаторы кнопок с вопросами
-        private static final String[] dropDownQuestionsArray = {
-                "accordion__heading-0",
-                "accordion__heading-1",
-                "accordion__heading-2",
-                "accordion__heading-3",
-                "accordion__heading-4",
-                "accordion__heading-5",
-                "accordion__heading-6",
-                "accordion__heading-7"
-        };
-
+        private final By[] dropDownQuestion = new By[8];
         // Локаторы кнопок с ответами
-        private static final String[] dropDownAnswersArray = {
-                "accordion__panel-0",
-                "accordion__panel-1",
-                "accordion__panel-2",
-                "accordion__panel-3",
-                "accordion__panel-4",
-                "accordion__panel-5",
-                "accordion__panel-6",
-                "accordion__panel-7"
-        };
+        private final By[] dropDownAnswers = new By[8];
+
+        {
+            for (int i = 0; i < 8; i++) {
+                dropDownQuestion[i] = By.id("accordion__heading-" + i);
+                dropDownAnswers[i] = By.id("accordion__panel-" + i);
+            }
+        }
 
         public HomePage(WebDriver driver) {
-
             this.driver = driver;
+            this.wait = new WebDriverWait(driver, Duration.ofSeconds(15));
         }
 
         // Открыть главную
-        public HomePage openSite() {
-            driver.get("https://qa-scooter.praktikum-services.ru/");
+        public HomePage open() {
+            driver.get(URL);
             return this;
         }
 
         //Локатор кнопка для закрытия кукис
-        public HomePage clickCookieButton() {
-            driver.findElement(cookieButton).click();
+        public HomePage acceptCookies() {
+            wait.until(ExpectedConditions.elementToBeClickable(cookieButton)).click();
             return this;
         }
-
 
         //Клик кнопки заказа вверху
-        public HomePage clickHeaderOrderButton() {
-            driver.findElement(upOrderButton).click();
-            return this;
+        public PageOrder clickHeaderOrderButton() {
+            wait.until(ExpectedConditions.elementToBeClickable(upOrderButton)).click();
+            return new PageOrder(driver);
         }
 
+
         //Клик кнопки заказа в середине
-        public HomePage clickMiddleOrderButton() {
-            driver.findElement(midOrderButton).click();
-            return this;
+        public PageOrder clickMiddleOrderButton() {
+            wait.until(ExpectedConditions.elementToBeClickable(midOrderButton)).click();
+            return new PageOrder(driver);
         }
 
         // Скролл страницы до блока с вопросами
         public HomePage scrollPage() {
-            WebElement lastQuestionArrow = driver.findElement(By.id(dropDownQuestionsArray[7]));
-            ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView();", lastQuestionArrow);
+            String lastQuestionLocator = String.format("accordion__heading-%d", 7);
+
+            // Находим элемент с явным ожиданием
+            WebElement lastQuestionArrow = wait.until(
+                    ExpectedConditions.presenceOfElementLocated(By.id(lastQuestionLocator))
+            );
+
+            // Скролл с плавной анимацией и центрированием
+            ((JavascriptExecutor) driver).executeScript(
+                    "arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});",
+                    lastQuestionArrow
+            );
+
+            // Дополнительная проверка видимости
+            wait.until(ExpectedConditions.visibilityOf(lastQuestionArrow));
             return this;
         }
 
 
         //Локатор для клика по стрелке выпадающего списка
-        public HomePage clickQuestionArrow(int questionNumber) {
-            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
-            WebElement element = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                    By.id(dropDownQuestionsArray[questionNumber])));
-            element.click();
+        public HomePage clickQuestion(int index) {
+            String questionLocator = String.format("accordion__heading-%d", index);
+            new WebDriverWait(driver, Duration.ofSeconds(10))
+                    .until(ExpectedConditions.elementToBeClickable(By.id(questionLocator)))
+                    .click();
             return this;
         }
 
         //Проверка соответсвия тектса ответов ОР и ФР
-        public void checkText(String expectedText, int answerNumber) {
-            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
-            WebElement element = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                    By.id(dropDownAnswersArray[answerNumber])));
-
-            Assert.assertEquals("Текст не совпадает для ответа номер: " + answerNumber,
-                    expectedText, element.getText());
+        public String checkText(int index) {
+            String answerLocator = String.format("accordion__panel-%d", index);
+            return new WebDriverWait(driver, Duration.ofSeconds(10))
+                    .until(ExpectedConditions.visibilityOfElementLocated(By.id(answerLocator)))
+                    .getText();
         }
+    }
 
-        //Клик по кнопке вопроса
-        public HomePage clickQuestionButton(String questionButtonLocator) {
-            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
-            WebElement element = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                    By.id(questionButtonLocator)));
-            element.click();
-            return this;
-        }
-}
+

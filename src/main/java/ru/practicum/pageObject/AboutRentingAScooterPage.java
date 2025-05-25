@@ -1,4 +1,4 @@
-package ru.practicum.pageObject;
+package ru.practicum.pageobject;
 
 import org.openqa.selenium.*;
 import org.openqa.selenium.support.ui.ExpectedConditions;
@@ -14,7 +14,7 @@ public class AboutRentingAScooterPage {
     //Локатор поля срока аренды
     private final By rentalTimeField = By.className("Dropdown-placeholder");
     //Локатор списка срока аренды
-    private final By rentalTime = By.xpath(".//*[(@role ='option' and text()='трое суток')]");
+    private final By rentalTimeOption = By.xpath(".//div[@class='Dropdown-option' and text()='трое суток']");
     //Локатор цвета самоката "Черный жемчуг"
     private final By blackColorCheckbox = By.xpath(".//input[@id='black']");
     //Локатор цвета самоката "Серая безысходность"
@@ -22,11 +22,11 @@ public class AboutRentingAScooterPage {
     //Локатор поля комментария для курьера
     private final By commentField = By.xpath(".//input[@placeholder='Комментарий для курьера']");
     //Локатор кнопки "Заказать"
-    private final By orderButton = By.cssSelector(".Button_Button__ra12g.Button_Middle__1CSJM");
+    private final By orderButton = By.xpath(".//button[(@class='Button_Button__ra12g Button_Middle__1CSJM' and text()='Заказать')]");
     //Локатор кнопки "Да" подтверждение заказа
-    private final By confirmButton = By.xpath("//button[text()='Да']");
+    private final By confirmButton = By.xpath(".//button[(@class='Button_Button__ra12g Button_Middle__1CSJM' and text()='Да')]");
     //Локатор модального окна подтверждения заказа
-    private final By confirmationWindow = By.xpath(".//div[contains(@class, 'Order_ModalHeader')]");
+    private final By confirmationModal = By.cssSelector("div.Order_Modal__YZ-d3");
 
     public AboutRentingAScooterPage(WebDriver driver) {
         this.driver = driver;
@@ -35,53 +35,58 @@ public class AboutRentingAScooterPage {
 
     //Ввод даты доставки
     public AboutRentingAScooterPage sendRentalDate(String date) {
-        driver.findElement(rentalDateField).sendKeys(date);
-        driver.findElement(rentalDateField).sendKeys(Keys.ENTER);
+        WebElement dateInput = wait.until(ExpectedConditions.elementToBeClickable(rentalDateField));
+        dateInput.sendKeys(date, Keys.ENTER);
         return this;
 
     }
 
     //Ввод срока аренды
     public AboutRentingAScooterPage setRentalTime() {
-        driver.findElement(rentalTimeField).click();
-        driver.findElement(rentalTime).click();
+        wait.until(ExpectedConditions.elementToBeClickable(rentalTimeField)).click();
+        wait.until(ExpectedConditions.elementToBeClickable(rentalTimeOption)).click();
         return this;
     }
 
     // Метод для выбора цвета
     public AboutRentingAScooterPage selectColor(String color) {
-        if (color.equalsIgnoreCase("black")) {
-            driver.findElement(blackColorCheckbox).click();
-        } else {
-            driver.findElement(grayColorCheckbox).click();
-        }
+        By colorLocator = color.equalsIgnoreCase("black") ? blackColorCheckbox : grayColorCheckbox;
+        wait.until(ExpectedConditions.elementToBeClickable(colorLocator)).click();
         return this;
     }
 
     // Ввод комментария для курьера
-    public AboutRentingAScooterPage sendComment(String userComment) {
-        driver.findElement(commentField).sendKeys(userComment);
+    public AboutRentingAScooterPage sendComment(String comment) {
+        driver.findElement(commentField).sendKeys(comment);
         return this;
     }
-
     // Клик по Кнопке "Заказать"
-    public AboutRentingAScooterPage clickOrderButton() {
-        driver.findElement(orderButton).click();
+    public AboutRentingAScooterPage confirmOrder() {
+        clickOrderButton();
+        clickConfirmationButton();
         return this;
     }
+    //Проверяет отображение подтверждения заказа
 
-
-    //Клик по кнопке "Да" оформления заказа
-    public AboutRentingAScooterPage clickOrderConfirmationButton() {
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        wait.until(ExpectedConditions.visibilityOfElementLocated(confirmationWindow));
-        driver.findElement(confirmButton).click();
-        return this;
+    public boolean isOrderConfirmed() {
+        try {
+            return wait.until(ExpectedConditions.visibilityOfElementLocated(confirmationModal))
+                    .isDisplayed();
+        } catch (TimeoutException e) {
+            return false;
+        }
+    }
+    private void clickOrderButton() {
+        wait.until(ExpectedConditions.elementToBeClickable(orderButton)).click();
     }
 
-    //Заказ оформлен
-    public boolean isOrderConfirmationDisplayed() {
-        return driver.findElement(confirmationWindow).isDisplayed();
+    private void clickConfirmationButton() {
+        wait.until(ExpectedConditions.elementToBeClickable(confirmButton)).click();
+    }
+    public AboutRentingAScooterPage fillRentalDetails(String date, String color, String comment) {
+        return this.sendRentalDate(date)
+                .setRentalTime()
+                .selectColor(color)
+                .sendComment(comment);
     }
 }
-
